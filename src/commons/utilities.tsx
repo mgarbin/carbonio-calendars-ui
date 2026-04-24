@@ -429,10 +429,8 @@ export function recursiveToggleCheck({
 						!(f as { broken?: boolean }).broken &&
 						!uncheckedIdsSet.has(f.id)
 				)
-				.reduce<string>(
-					(acc, f, idx) => (idx === 0 ? `inid:"${f.id}"` : `${acc} OR inid:"${f.id}"`),
-					''
-				);
+				.map((f) => `inid:"${f.id}"`)
+				.join(' OR ');
 			dispatch(searchAppointments({ spanEnd: end, spanStart: start, query: remainingQuery }));
 		}
 	});
