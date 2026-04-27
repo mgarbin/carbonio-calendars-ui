@@ -14,6 +14,7 @@ import {
 	getUpdateFolder,
 	hasId
 } from '@zextras/carbonio-ui-commons';
+
 import { find, forEach, isNil, map, reduce, some } from 'lodash';
 import moment from 'moment';
 
@@ -401,12 +402,17 @@ export function recursiveToggleCheck({
 	folderAction(actions).then((res) => {
 		if (res?.Fault) return;
 
+		const updateFolder = getUpdateFolder();
+		const newChecked = op === FOLDER_OPERATIONS.CHECK;
+		forEach(foldersToToggleIds, (id) => {
+			updateFolder(id, { checked: newChecked });
+		});
+
 		if (op === FOLDER_OPERATIONS.CHECK) {
 			const newFolderParts = map(foldersToToggleIds, (id) => `inid:"${id}"`).join(' OR ');
 			const augmentedQuery = query ? `${query} OR ${newFolderParts}` : newFolderParts;
 			dispatch(searchAppointments({ spanEnd: end, spanStart: start, query: augmentedQuery }));
 			dispatch(getMiniCal({ start, end })).then((response) => {
-				const updateFolder = getUpdateFolder();
 				// todo: remove ts ignore once getMiniCal is typed
 				// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 				// @ts-ignore
