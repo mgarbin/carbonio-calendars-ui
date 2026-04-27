@@ -9,6 +9,7 @@ import type { Folder } from '@zextras/carbonio-ui-commons';
 import {
 	ROOT_NAME,
 	FOLDERS,
+	folderWorker,
 	getFoldersMap,
 	getRoot,
 	getUpdateFolder,
@@ -403,8 +404,36 @@ export function recursiveToggleCheck({
 
 		const updateFolder = getUpdateFolder();
 		const newChecked = op === FOLDER_OPERATIONS.CHECK;
+
+		// Capture current folder flags BEFORE updating the main-thread store so we
+		// can build the correct synthetic notify for the worker below.
+		const currentFolders = getFoldersMap();
+
 		forEach(foldersToToggleIds, (id) => {
 			updateFolder(id, { checked: newChecked });
+		});
+
+		// The folderWorker maintains its own internal `folders` state independently
+		// from the main-thread zustand store. Every time it receives a message it
+		// posts back ALL of its folders, overwriting useFolderStore. Without this
+		// synthetic notify the worker would keep posting back stale checked=false
+		// values whenever any subsequent folder notify arrives, undoing the
+		// getUpdateFolder change above and reverting the toggle icon.
+		folderWorker.postMessage({
+			op: 'notify',
+			notify: {
+				modified: {
+					folder: map(foldersToToggleIds, (id) => {
+						const existingF = currentFolders[id]?.f ?? '';
+						const newF = newChecked
+							? existingF.includes('#')
+								? existingF
+								: `${existingF}#`
+							: existingF.replace(/#/g, '');
+						return { id, f: newF };
+					})
+				}
+			}
 		});
 
 		if (op === FOLDER_OPERATIONS.CHECK) {
@@ -425,9 +454,8 @@ export function recursiveToggleCheck({
 				}
 			});
 		} else {
-			const allFolders = getFoldersMap();
 			const uncheckedIdsSet = new Set(foldersToToggleIds);
-			const remainingQuery = Object.values(allFolders)
+			const remainingQuery = Object.values(currentFolders)
 				.filter(
 					(f) =>
 						f.checked === true &&

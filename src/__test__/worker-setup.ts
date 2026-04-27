@@ -17,7 +17,7 @@ class Worker {
 	}
 
 	postMessage(msg: string): void {
-		this.onmessage(msg);
+		this.onmessage({ data: msg } as MessageEvent);
 	}
 }
 
