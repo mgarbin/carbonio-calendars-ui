@@ -14,7 +14,6 @@ import {
 	getUpdateFolder,
 	hasId
 } from '@zextras/carbonio-ui-commons';
-
 import { find, forEach, isNil, map, reduce, some } from 'lodash';
 import moment from 'moment';
 
